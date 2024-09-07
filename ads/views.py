@@ -1,7 +1,8 @@
 from rest_framework import generics, status
-from django_filters import rest_framework as filters
+from rest_framework.response import Response
+
 from .models import Car,Ad
-from .serializers import AdListSerializer,AdDetailSerializer
+from .serializers import AdListSerializer,AdDetailSerializer,AdCreateSerializer
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
@@ -49,3 +50,30 @@ class AdDetailView(generics.RetrieveAPIView):
     queryset = Ad.objects.all().order_by('id')
     serializer_class = AdDetailSerializer
 
+class AdCreateView(generics.CreateAPIView):
+    queryset = Ad.objects.all().order_by('id')
+    serializer_class = AdCreateSerializer
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if not user.is_authenticated:
+            return Response(
+                {"detail": "To post an ad, you need to register or log in."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        elif not user.phone_number:
+            return Response(
+                {"detail": "Please go to your profile and provide your phone number before posting an ad."},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            {"detail": "You meet the requirements to post an ad. You can now submit your ad!"},
+            status=status.HTTP_200_OK
+        )
+    def post(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        if serializer.is_valid():
+            ad = serializer.save()
+            return Response({"message": "Car and Ad created successfully"}, status=status.HTTP_201_CREATED)
+        else:
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
