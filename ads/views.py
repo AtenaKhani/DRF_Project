@@ -1,4 +1,5 @@
 from rest_framework import generics, status
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
 from .models import Car,Ad
@@ -54,7 +55,7 @@ class AdCreateView(generics.CreateAPIView):
     queryset = Ad.objects.all().order_by('id')
     serializer_class = AdCreateSerializer
 
-    def get(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         user = request.user
         if not user.is_authenticated:
             return Response(
@@ -66,14 +67,25 @@ class AdCreateView(generics.CreateAPIView):
                 {"detail": "Please go to your profile and provide your phone number before posting an ad."},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        return Response(
-            {"detail": "You meet the requirements to post an ad. You can now submit your ad!"},
-            status=status.HTTP_200_OK
-        )
-    def post(self, request, *args, **kwargs):
+
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             ad = serializer.save()
             return Response({"message": "Car and Ad created successfully"}, status=status.HTTP_201_CREATED)
         else:
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class UserAdListView(generics.ListAPIView):
+    serializer_class = AdListSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        user = self.request.user
+        return Ad.objects.filter(user=user)
+
+class UserAdDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = AdCreateSerializer
+    permission_classes = [IsAuthenticated]
+    def get_queryset(self):
+        user = self.request.user
+        return Ad.objects.filter(user=user)
