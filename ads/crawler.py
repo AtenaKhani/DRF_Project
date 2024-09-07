@@ -44,9 +44,18 @@ class crawler:
         details = ad.get('detail', {})
         price_info = ad.get('price', {})
         dealer = ad.get('dealer', {})
+        details = details if details is not None else {}
+        price_info = price_info if price_info is not None else {}
+        dealer = dealer if dealer is not None else {}
         price = price_info.get('price')
+        url = details.get('url')
+        link =dealer.get('link')
         if price is not None:
             price = price_info.get('price').replace(",", "")
+        if url  is not None:
+            url = "https://bama.ir" + url
+        if link is not None:
+            link= "https://bama.ir" + link
         car_instance=Car(
             title=details.get('title'),
             year=details.get('year'),
@@ -67,8 +76,8 @@ class crawler:
             location=details.get('location'),
             price=price,
             payment_method=price_info.get('type'),
-            seller_contact=dealer.get('link'),
-            url = details.get('url'),
+            seller_contact=link,
+            url = url,
             type='free',
 
         )
@@ -78,7 +87,7 @@ class crawler:
         all_ads=[]
         semaphore = asyncio.Semaphore(10)
         async with aiohttp.ClientSession() as session:
-            tasks = [self.fetch_pages(session, page, semaphore) for page in range(2, pages + 1)]
+            tasks = [self.fetch_pages(session, page, semaphore) for page in range(3, pages + 1)]
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for result in results:
                 if isinstance(result, Exception):
