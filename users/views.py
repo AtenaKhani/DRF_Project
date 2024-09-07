@@ -1,9 +1,10 @@
 from allauth.account.models import get_emailconfirmation_model
 from dj_rest_auth.registration.views import RegisterView, VerifyEmailView
+from dj_rest_auth.views import LoginView
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.response import Response
-from .serializers import  CustomRegisterSerializer
+from .serializers import  CustomRegisterSerializer,CustomLoginSerializer
 
 
 class CustomRegisterView(RegisterView):
@@ -42,6 +43,17 @@ class CustomVerifyEmailView(VerifyEmailView):
             return Response({
                 'detail': f'An unexpected error occurred: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+class CustomLoginView(LoginView):
+    serializer_class = CustomLoginSerializer
+    def get_response(self):
+        return Response({
+            'detail': f'Successfully logged in'
+        }, status=status.HTTP_200_OK)
+
+
+
+
 
 
 
