@@ -53,7 +53,7 @@ class Ad(models.Model):
     ]
     AD_TYPES = [
         ('free','رایگان'),
-        ('premium',',ویژه')
+        ('premium','ویژه')
     ]
     code = models.CharField(max_length=50, blank=False, null=False)
     user = models.ForeignKey(user_model, on_delete=models.CASCADE, related_name='user',null=True)
