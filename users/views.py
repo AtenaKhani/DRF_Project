@@ -8,6 +8,7 @@ from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from .serializers import CustomRegisterSerializer, CustomLoginSerializer, UserProfileSerializer
+from .throttels import  LoginRateThrottle
 
 
 class CustomRegisterView(RegisterView):
@@ -48,6 +49,7 @@ class CustomVerifyEmailView(VerifyEmailView):
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 class CustomLoginView(LoginView):
+    throttle_classes = [LoginRateThrottle]
     serializer_class = CustomLoginSerializer
     def get_response(self):
         return Response({
