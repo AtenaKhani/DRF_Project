@@ -1,3 +1,5 @@
+import re
+from datetime import date
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
 from rest_framework import exceptions,serializers
@@ -78,4 +80,43 @@ class CustomLoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+
+class UserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserModel
+        fields = (
+        'pk', 'email', 'first_name', 'last_name', 'birth_date', 'phone_number', 'wallet_balance', 'date_joined')
+        read_only_fields = ('email', 'date_joined', 'wallet_balance')
+
+    def validate_birth_date(self, value):
+        if value is None:
+            raise serializers.ValidationError("Birth date is required.")
+        today = date.today()
+        if value > today:
+            raise serializers.ValidationError("Birth date cannot be in the future.")
+        age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
+        if age < 7:
+            raise serializers.ValidationError("You must be at least 7 years old.")
+        if age > 100:
+            raise serializers.ValidationError("Age must be less than 100 years.")
+
+        return value
+
+    def validate_name_field(self, value, field_name):
+        if not value:
+            raise serializers.ValidationError(f"{field_name} cannot be empty.")
+        if len(value) < 3:
+            raise serializers.ValidationError(f"{field_name} must be at least 3 characters long.")
+        if not re.match(r'^[A-Za-zآ-ی]+$', value):
+            raise serializers.ValidationError(f"{field_name} must contain only alphabetic characters.")
+        return value
+
+    def validate_first_name(self, value):
+        return self.validate_name_field(value, "First name")
+
+    def validate_last_name(self, value):
+        return self.validate_name_field(value, "Last name")
+
+
+
 
