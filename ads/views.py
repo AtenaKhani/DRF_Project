@@ -48,3 +48,4 @@ class AdListView(generics.ListAPIView):
 class AdDetailView(generics.RetrieveAPIView):
     queryset = Ad.objects.all().order_by('id')
     serializer_class = AdDetailSerializer
+
