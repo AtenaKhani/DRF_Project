@@ -1,9 +1,19 @@
 import aiohttp
 import asyncio
+import logging
+
 from time import time
 from aiohttp.client import ClientSession
 from asgiref.sync import sync_to_async
 from .models import Car,Ad
+
+
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+logger = logging.getLogger(__name__)
 
 
 class crawler:
@@ -24,16 +34,17 @@ class crawler:
                             car, ad_info = self.extract_info(ad)
                             cars_list.append(car)
                             ads_list.append(ad_info)
+                        logger.info(f"Successfully fetched data from page {page}.")
                         return cars_list, ads_list
 
                     else:
-                        print(f"Data not found on page {page}.")
+                        logger.warning(f"Data not found on page {page}.")
 
                 except aiohttp.ContentTypeError:
-                    print(f"Error parsing JSON on page {page}. Response content:", await response.text())
+                    logger.error(f"Error parsing JSON on page {page}. Response content: {await response.text()}")
 
                 except aiohttp.ClientResponseError as e:
-                    print(f"HTTP request error on page {page}: {e}")
+                    logger.error(f"HTTP request error on page {page}: {e}")
 
     def extract_info(self, ad):
         def get_display_value(choices, key):
@@ -91,7 +102,7 @@ class crawler:
             results = await asyncio.gather(*tasks, return_exceptions=True)
             for result in results:
                 if isinstance(result, Exception):
-                    print(f"An error occurred: {result}")
+                    logger.error(f"An error occurred: {result}")
                     continue
 
                 if isinstance(result, tuple) and len(result) == 2:
@@ -100,7 +111,7 @@ class crawler:
                         all_cars.extend(cars_list)
                         all_ads.extend(ads_list)
         await self.save_data(all_cars,all_ads)
-        print(f"{len(all_ads)} ads have been successfully extracted .")
+        logger.error(f"{len(all_ads)} ads have been successfully extracted .")
 
     async def save_data(self,cars, ads):
         ads = [ad for ad in ads]
@@ -118,10 +129,11 @@ class crawler:
         if new_ads:
             await sync_to_async(Car.objects.bulk_create)(new_cars)
             await sync_to_async(Ad.objects.bulk_create)(new_ads)
+            logger.info(f"Saved {len(new_ads)} new ads and {len(new_cars)} new cars to the database.")
 
 def run_crawler():
     fetcher = crawler('https://bama.ir/cad/api/search')
-    print("Crawling process started...")
+    logger.info("Crawling process started...")
     start = time()
     asyncio.run(fetcher.create_and_run_tasks(10))
-    print(f"run time: {time() - start} seconds")
+    logger.info(f"run time: {time() - start} seconds")
