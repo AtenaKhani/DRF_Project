@@ -1,5 +1,9 @@
+import logging
+
 from rest_framework.throttling import SimpleRateThrottle
 from django.core.cache import cache
+
+logger=logging.getLogger('users')
 
 class LoginRateThrottle(SimpleRateThrottle):
     scope = 'login'
@@ -12,7 +16,7 @@ class LoginRateThrottle(SimpleRateThrottle):
             return f'login_attempt_anon_{ip_address}'
 
     def allow_request(self, request, view):
-        block_time = 30 * 60
+        block_time = 15 * 60
         if request.user.is_authenticated:
             max_attempts = 20
         else:
@@ -24,12 +28,15 @@ class LoginRateThrottle(SimpleRateThrottle):
             if attempts >= max_attempts:
                 wait_time = cache.ttl(cache_key) or 0
                 if wait_time > 0:
+                    logger.warning(f"Rate limit exceeded for {request.user} (IP: {request.META.get('REMOTE_ADDR')})."
+                                   f" Waiting time: {wait_time} seconds.")
                     return False
 
             cache.set(cache_key, attempts + 1, timeout=block_time)
+            logger.info(f"Login attempt {attempts + 1} for {request.user} (IP: {request.META.get('REMOTE_ADDR')}).")
         return True
 
-    def wait(self):
+    def wait(self,request,view):
             return 15 * 60
 
 
