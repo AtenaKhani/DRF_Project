@@ -1,14 +1,17 @@
-from cProfile import label
-from random import choices
+import logging
 
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .models import Car,Ad
-from .serializers import AdListSerializer,AdDetailSerializer,AdCreateSerializer
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+
+from .serializers import AdListSerializer,AdDetailSerializer,AdCreateSerializer
+from .models import Car,Ad
+
+logger = logging.getLogger('ads')
+
 class CarFilter(filters.FilterSet):
     class Meta:
         model = Car
@@ -61,11 +64,13 @@ class AdCreateView(generics.CreateAPIView):
     def post(self, request, *args, **kwargs):
         user = request.user
         if not user.is_authenticated:
+            logger.error(f'Unauthorized ad creation attempt by user with IP: {request.META["REMOTE_ADDR"]}')
             return Response(
                 {"detail": "To post an ad, you need to register or log in."},
                 status=status.HTTP_401_UNAUTHORIZED
             )
         elif not user.phone_number:
+            logger.error(f'User {user.email} tried to post an ad without providing a phone number.')
             return Response(
                 {"detail": "Please go to your profile and provide your phone number before posting an ad."},
                 status=status.HTTP_400_BAD_REQUEST
@@ -74,8 +79,10 @@ class AdCreateView(generics.CreateAPIView):
         serializer = self.get_serializer(data=request.data)
         if serializer.is_valid():
             ad = serializer.save()
+            logger.info(f'Ad created successfully for user {user.email}, Ad ID: {ad.id}')
             return Response({"message": "Car and Ad created successfully"}, status=status.HTTP_201_CREATED)
         else:
+            logger.error(f'Ad creation failed for user {user.email}')
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserAdListView(generics.ListAPIView):
