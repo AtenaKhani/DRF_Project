@@ -1,8 +1,12 @@
+import logging
+
 from django.contrib.auth.models import AbstractBaseUser, PermissionsMixin
 from django.utils import timezone
 from django.contrib.auth.models import BaseUserManager
 from phonenumber_field.modelfields import PhoneNumberField
 from django.db import models
+
+logger = logging.getLogger('users')
 
 
 class CustomUserManager(BaseUserManager):
@@ -13,6 +17,7 @@ class CustomUserManager(BaseUserManager):
         user = self.model(email=email, **extra_fields)
         user.set_password(password)
         user.save(using=self._db)
+        logger.info(f'User created with email: {email}')
         return user
 
     def create_superuser(self, email, password=None, **extra_fields):
@@ -20,10 +25,12 @@ class CustomUserManager(BaseUserManager):
         extra_fields.setdefault('is_superuser', True)
 
         if extra_fields.get('is_staff') is not True:
+            logger.error('Superuser must have is_staff=True.')
             raise ValueError('Superuser must have is_staff=True.')
         if extra_fields.get('is_superuser') is not True:
+            logger.error('Superuser must have is_superuser=True.')
             raise ValueError('Superuser must have is_superuser=True.')
-
+        logger.info(f'Superuser created with email: {email}')
         return self.create_user(email, password=password, **extra_fields)
 
 
