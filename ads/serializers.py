@@ -72,31 +72,42 @@ class AdCreateSerializer(serializers.ModelSerializer):
         fields = ['car','description','location','price','payment_method','type']
     def validate_price(self, value):
         if value < 0:
+            logger.error(f'Invalid price : {value}.Price cannot be negative.')
             raise serializers.ValidationError("Price cannot be negative.")
         return value
     def validate_type(self,value):
         if value == 'premium':
             user = self.context['request'].user
             if user.wallet_balance < 50000:
+                logger.error(
+                    f'User {user.email} attempted to register a premium ad with insufficient wallet balance.')
                 raise  serializers.ValidationError("Your wallet balance is less than 50000 Tomans, you cannot register a premium ad")
+        logger.info(f'User {user.email} is allowed to register a premium ad.')
         return value
 
     def generate_ad_code(self):
             prefix = "myad-"
             random_part = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
             date_part = datetime.now().strftime('%Y%m%d')
-            return f"{prefix}{date_part}-{random_part}"
+            ad_code = f"{prefix}{date_part}-{random_part}"
+            logger.info(f'Generated ad code: {ad_code}')
+            return ad_code
 
     def create(self, validated_data):
             car_data = validated_data.pop('car')
             user = self.context['request'].user
             validated_data['code'] = self.generate_ad_code()
             validated_data['seller_contact'] = user.phone_number
+            logger.info(f'Creating ad with validated data: {validated_data}')
             car = Car.objects.create(**car_data)
+            logger.info(f'Car created with ID: {car.id}')
             ad = Ad.objects.create(**validated_data, car=car,user=user)
+            logger.info(f'Ad created with ID: {ad.id}, Code: {ad.code}')
             if ad.type == 'premium':
                 user.wallet_balance -= 50000
                 user.save()
+                logger.info(f'Premium ad created. deducted 50000 Tomans from user ID: {user.id}')
+
             ad.url = reverse('ad_detail', kwargs={'pk': ad.pk})
             ad.save()
             return ad
@@ -106,14 +117,21 @@ class AdCreateSerializer(serializers.ModelSerializer):
             user = self.context['request'].user
             user.wallet_balance -= 50000
             user.save()
+            logger.info(
+                f'User ID: {user.id} upgraded ad ID: {instance.id} to premium. deducted 50000 Tomans from wallet.')
         if instance.type == 'premium' and validated_data['type']=='free':
+            logger.error(
+                f'User ID: {self.context["request"].user.id} attempted to change ad ID: {instance.id} '
+                f'from premium to free. This operation is not allowed.')
             raise serializers.ValidationError("You cannot change the premium ad to free")
         car_data = validated_data.pop('car', None)
         if car_data:
             for attr, value in car_data.items():
                 setattr(instance.car, attr, value)
             instance.car.save()
+            logger.info(f'Updated car details for ad ID: {instance.id}.')
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         instance.save()
+        logger.info(f'Updated ad ID: {instance.id}.')
         return instance
