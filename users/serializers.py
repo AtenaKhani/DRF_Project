@@ -28,34 +28,42 @@ class CustomLoginSerializer(serializers.Serializer):
         return authenticate(self.context['request'], **kwargs)
 
     def _validate_email(self, email, password):
+        logger.debug("Validating email: %s", email)
         if email and password:
             user = self.authenticate(email=email, password=password)
             if not user:
                 UserModel = get_user_model()
                 try:
                     UserModel.objects.get(email=email)
+                    logger.warning("Incorrect password provided for email: %s", email)
                     raise exceptions.ValidationError('Incorrect password.')
                 except UserModel.DoesNotExist:
+                    logger.warning("No user found with this email address: %s", email)
                     raise exceptions.ValidationError('No user found with this email address.')
         else:
             msg = 'Must include "email" and "password".'
+            logger.error(msg)
             raise exceptions.ValidationError(msg)
-
+        logger.info("User authenticated successfully: %s", email)
         return user
 
     def get_auth_user_using_allauth(self, email, password):
+        logger.debug("Attempting allauth authentication with email: %s", email)
         if allauth_account_settings.AUTHENTICATION_METHOD == allauth_account_settings.AuthenticationMethod.EMAIL:
             return self._validate_email(email, password)
 
         msg = 'This authentication method is not supported. Please use email for login.'
+        logger.error(msg)
         raise exceptions.ValidationError(msg)
 
     def get_auth_user(self, email, password):
+        logger.debug("Getting auth user for email: %s", email)
         if 'allauth' in settings.INSTALLED_APPS:
             try:
                 return self.get_auth_user_using_allauth(email, password)
             except url_exceptions.NoReverseMatch:
                 msg = 'Unable to log in with provided credentials.'
+                logger.error(msg)
                 raise exceptions.ValidationError(msg)
         else:
             return self._validate_email(email, password)
@@ -63,6 +71,7 @@ class CustomLoginSerializer(serializers.Serializer):
     def validate_auth_user_status(user):
         if not user.is_active:
             msg = 'User account is disabled.'
+            logger.warning("Validation error: %s", msg)
             raise exceptions.ValidationError(msg)
 
     @staticmethod
@@ -71,17 +80,21 @@ class CustomLoginSerializer(serializers.Serializer):
         if (
             allauth_account_settings.EMAIL_VERIFICATION == allauth_account_settings.EmailVerificationMethod.MANDATORY and not user.emailaddress_set.filter(email=user.email, verified=True).exists()
         ):
-            raise serializers.ValidationError('E-mail is not verified.')
+            msg = 'E-mail is not verified.'
+            logger.warning("Validation error: %s", msg)
+            raise serializers.ValidationError(msg)
 
     def validate(self, attrs):
         email = attrs.get('email')
         password = attrs.get('password')
+        logger.debug("Validating credentials for email: %s", email)
         user = self._validate_email(email, password)
         self.validate_auth_user_status(user)
         if 'dj_rest_auth.registration' in settings.INSTALLED_APPS:
             self.validate_email_verification_status(user, email=email)
 
         attrs['user'] = user
+        logger.info("Validation successful for email: %s", email)
         return attrs
 
 class UserProfileSerializer(serializers.ModelSerializer):
