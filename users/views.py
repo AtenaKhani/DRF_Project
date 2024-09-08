@@ -17,12 +17,15 @@ logger=logging.getLogger('users')
 
 class CustomRegisterView(RegisterView):
     serializer_class = CustomRegisterSerializer
+
+
 class CustomVerifyEmailView(VerifyEmailView):
 
     def post(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
 
         if not serializer.is_valid():
+            logger.warning("Email verification failed: Invalid verification key provided.")
             return Response({
                 'detail': 'Invalid verification key.'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -32,6 +35,7 @@ class CustomVerifyEmailView(VerifyEmailView):
         model = get_emailconfirmation_model()
         confirmation = model.from_key(key)
         if not confirmation:
+            logger.warning("Email verification failed: Invalid key or email already confirmed.")
             return Response({
                 'detail': 'Invalid Key or Your email has already been confirmed .'
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -39,18 +43,22 @@ class CustomVerifyEmailView(VerifyEmailView):
 
         try:
             confirmation.confirm(self.request)
+            logger.info(f"Email confirmed successfully for address: {email_address.email}")
             return Response({
                 'detail': f'{email_address.email}  has been successfully confirmed.'
             }, status=status.HTTP_200_OK)
 
         except APIException as e:
+            logger.error(f"Error confirming email: {str(e)}")
             return Response({
                 'detail': f'Error confirming email: {str(e)}'
             }, status=status.HTTP_400_BAD_REQUEST)
         except Exception as e:
+            logger.error(f"An unexpected error occurred: {str(e)}")
             return Response({
                 'detail': f'An unexpected error occurred: {str(e)}'
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 
 class CustomLoginView(LoginView):
     throttle_classes = [LoginRateThrottle]
@@ -60,6 +68,8 @@ class CustomLoginView(LoginView):
         return Response({
             'detail': f'Successfully logged in'
         }, status=status.HTTP_200_OK)
+
+    
 class UserProfileView(RetrieveUpdateAPIView):
     serializer_class = UserProfileSerializer
     permission_classes = (IsAuthenticated,)
