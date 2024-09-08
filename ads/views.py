@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from django_filters import rest_framework as filters
 from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.filters import SearchFilter
+from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import AdListSerializer,AdDetailSerializer,AdCreateSerializer
 from .models import Car,Ad
@@ -60,6 +61,8 @@ class AdDetailView(generics.RetrieveAPIView):
 class AdCreateView(generics.CreateAPIView):
     queryset = Ad.objects.all().order_by('id')
     serializer_class = AdCreateSerializer
+    authentication_classes = [JWTAuthentication]
+    permission_classes = [IsAuthenticated]
 
     def post(self, request, *args, **kwargs):
         user = request.user
@@ -86,6 +89,7 @@ class AdCreateView(generics.CreateAPIView):
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class UserAdListView(generics.ListAPIView):
+    authentication_classes = [JWTAuthentication]
     serializer_class = AdListSerializer
     permission_classes = [IsAuthenticated]
 
@@ -95,6 +99,7 @@ class UserAdListView(generics.ListAPIView):
 
 class UserAdDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = AdCreateSerializer
+    authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
     def get_queryset(self):
         user = self.request.user
