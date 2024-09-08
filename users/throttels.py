@@ -36,7 +36,7 @@ class LoginRateThrottle(SimpleRateThrottle):
             logger.info(f"Login attempt {attempts + 1} for {request.user} (IP: {request.META.get('REMOTE_ADDR')}).")
         return True
 
-    def wait(self,request,view):
+    def wait(self):
             return 15 * 60
 
 

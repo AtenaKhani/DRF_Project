@@ -1,4 +1,6 @@
 import re
+import logging
+
 from datetime import date
 from django.conf import settings
 from django.contrib.auth import get_user_model, authenticate
@@ -6,9 +8,10 @@ from rest_framework import exceptions,serializers
 from django.urls import exceptions as url_exceptions
 from allauth.account import app_settings as allauth_account_settings
 from dj_rest_auth.registration.serializers import RegisterSerializer
+
 from .models import CustomUser
 
-
+logger = logging.getLogger('users')
 UserModel = get_user_model()
 
 class CustomRegisterSerializer(RegisterSerializer):
@@ -89,26 +92,38 @@ class UserProfileSerializer(serializers.ModelSerializer):
         read_only_fields = ('email', 'date_joined', 'wallet_balance')
 
     def validate_birth_date(self, value):
+        logger.debug("Validating birth_date: %s", value)
         if value is None:
+            logger.error("Validation error for birth_date: Birth date is required.")
             raise serializers.ValidationError("Birth date is required.")
         today = date.today()
         if value > today:
+            logger.error("Validation error for birth_date: Birth date cannot be in the future.")
             raise serializers.ValidationError("Birth date cannot be in the future.")
         age = today.year - value.year - ((today.month, today.day) < (value.month, value.day))
         if age < 7:
+            logger.error("Validation error for birth_date: You must be at least 7 years old.")
             raise serializers.ValidationError("You must be at least 7 years old.")
         if age > 100:
+            logger.error("Validation error for birth_date: Age must be less than 100 years.")
             raise serializers.ValidationError("Age must be less than 100 years.")
 
+        logger.info("Birth date validated successfully: %s", value)
         return value
 
     def validate_name_field(self, value, field_name):
+        logger.debug("Validating %s: %s", field_name, value)
         if not value:
+            logger.error("Validation error for %s: %s cannot be empty.", field_name, field_name)
             raise serializers.ValidationError(f"{field_name} cannot be empty.")
         if len(value) < 3:
+            logger.error("Validation error for %s: %s must be at least 3 characters long.", field_name, field_name)
             raise serializers.ValidationError(f"{field_name} must be at least 3 characters long.")
         if not re.match(r'^[A-Za-zآ-ی]+$', value):
+            logger.error("Validation error for %s: %s must contain only alphabetic characters.", field_name, field_name)
             raise serializers.ValidationError(f"{field_name} must contain only alphabetic characters.")
+
+        logger.info("%s validated successfully: %s", field_name, value)
         return value
 
     def validate_first_name(self, value):
