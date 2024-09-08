@@ -1,12 +1,17 @@
+import logging
+
 from django.contrib.admin import SimpleListFilter
 from django.contrib import admin
 from django.utils.safestring import mark_safe
 
 from .models import Car,Ad
 
+logger = logging.getLogger('ads')
+
 @admin.action(description='Mark selected ads as premium')
 def make_premium(modeladmin, request, queryset):
-    queryset.update(type='premium')
+    updated_count =queryset.update(type='premium')
+    logger.info(f'{updated_count} ads marked as premium by user {request.user.email}')
 
 class PriceRangeFilter(SimpleListFilter):
     title = 'Price Range'
@@ -16,7 +21,7 @@ class PriceRangeFilter(SimpleListFilter):
         return [
             ('under_500_million', 'Under 500 Million'),
             ('500_1000_million', '500-1000 Million'),
-            ('over_1000_million', 'Over 1000 Million'),
+            ('over_1_billion', 'Over 1 billion'),
         ]
 
     def queryset(self, request, queryset):
