@@ -1,7 +1,9 @@
+from cProfile import label
+from random import choices
+
 from rest_framework import generics, status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-
 from .models import Car,Ad
 from .serializers import AdListSerializer,AdDetailSerializer,AdCreateSerializer
 from django_filters import rest_framework as filters
@@ -18,6 +20,7 @@ class AdFilter(filters.FilterSet):
     car__transmission = filters.ChoiceFilter(field_name='car__transmission',choices=Car.TRANSMISSION_TYPES)
     car__body_type=filters.ChoiceFilter(field_name='car__body_type',choices=Car.BODY_TYPES)
     car__fuel= filters.ChoiceFilter(field_name='car__fuel', choices=Car.FUEL_TYPES)
+    type=filters.ChoiceFilter(field_name='type',choices=Ad.AD_TYPES,label='Ad Type')
     price = filters.BooleanFilter(field_name='price', method='filter_has_price', label='Has Price')
     payment_method = filters.ChoiceFilter(field_name='payment_method', choices=Ad.PAYMENT_METHOD,
                                         label='Payment Method')
@@ -40,7 +43,7 @@ class AdFilter(filters.FilterSet):
 #
 
 class AdListView(generics.ListAPIView):
-    queryset = Ad.objects.all().order_by('id')
+    queryset = Ad.objects.all()
     serializer_class = AdListSerializer
     filter_backends = [DjangoFilterBackend, SearchFilter]
     filterset_class = AdFilter

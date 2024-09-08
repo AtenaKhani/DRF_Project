@@ -44,6 +44,18 @@ class Car(models.Model):
 
     class Meta:
         db_table = 'car'
+
+class AdManager(models.Manager):
+    def get_queryset(self):
+        return super().get_queryset().order_by(
+            models.Case(
+                models.When(type='premium', then=0),
+                models.When(type='free', then=1),
+                output_field=models.IntegerField(),
+            ),
+            '-created_date'
+        )
+
 class Ad(models.Model):
     PAYMENT_METHOD = [
         ('lumpsum', 'نقدی'),
@@ -67,7 +79,7 @@ class Ad(models.Model):
     type=models.CharField(max_length=20,choices=AD_TYPES)
     created_date = models.DateTimeField(auto_now_add=True)
     modified_date = models.DateTimeField(auto_now=True)
-    objects = Manager()
+    objects = AdManager()
     def __str__(self):
         return self.code
 

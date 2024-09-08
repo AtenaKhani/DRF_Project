@@ -30,6 +30,9 @@ class CarSerializer(serializers.ModelSerializer):
 
 
 class AdListSerializer(serializers.ModelSerializer):
+    is_premium = serializers.SerializerMethodField()
+    def get_is_premium(self, obj):
+        return obj.type == 'premium'
     car_year = serializers.SerializerMethodField()
     car_title = serializers.SerializerMethodField()
     car_image= serializers.SerializerMethodField()
@@ -41,7 +44,7 @@ class AdListSerializer(serializers.ModelSerializer):
         return obj.car.image if obj.car else None
     class Meta:
         model = Ad
-        fields = ['id','car_title','car_year','location','price','payment_method','car_image']
+        fields = ['id','car_title','car_year','location','price','payment_method','car_image','is_premium']
 
 
 class AdDetailSerializer(serializers.ModelSerializer):
