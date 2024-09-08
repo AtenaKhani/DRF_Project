@@ -50,6 +50,7 @@ INSTALLED_APPS = [
     'django_filters',
     'users',
     'ads',
+    'transaction',
 ]
 
 MIDDLEWARE = [
@@ -197,6 +198,10 @@ REST_FRAMEWORK = {
        'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
         'PAGE_SIZE': 15,
 }
+ZARINPAL_MERCHANT_ID = 'XXXXXXXX-XXXX-XXXX-XXXX-XXXXXXXXXXXX'  # مرچنت تست
+ZARINPAL_REQUEST_URL = 'https://sandbox.zarinpal.com/pg/v4/payment/request.json'
+ZARINPAL_STARTPAY_URL = 'https://sandbox.zarinpal.com/pg/StartPay/'
+ZARINPAL_VERIFY_URL =' https://sandbox.zarinpal.com/pg/v4/payment/verify.json'
 
 
 
