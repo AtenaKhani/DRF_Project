@@ -181,8 +181,8 @@ REST_FRAMEWORK = {
             'rest_framework.throttling.AnonRateThrottle',
         ],
         'DEFAULT_THROTTLE_RATES': {
-            'user': '100/hour',
-            'anon': '10/minute',
+            'user': '500/hour',
+            'anon': '1000/minute',
             'login': '3/hour',
         },
        'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

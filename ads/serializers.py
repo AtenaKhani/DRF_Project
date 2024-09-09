@@ -52,7 +52,7 @@ class AdListSerializer(serializers.ModelSerializer):
         return obj.car.title if obj.car else None
 
     def get_car_image(self, obj):
-        return obj.car.title if obj.car else None
+        return obj.car.image if obj.car else None
     class Meta:
         model = Ad
         fields = ['id','car_title','car_year','location','price','payment_method','car_image','is_premium']

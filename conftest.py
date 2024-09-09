@@ -14,7 +14,7 @@ def car_instance():
     return Car.objects.create(
         title = "Toyota Corolla",
         year = 2020,
-        mileage = 20000,
+        mileage = "20000",
         body_color = "red",
         inside_color = "black",
         body_type ='passenger_car',
@@ -25,7 +25,7 @@ def car_instance():
 @pytest.fixture
 def user_instance():
     return User.objects.create_user(
-        email = "akhani@gmail.com",
+        email = "aakhani@gmail.com",
         first_name = "amir",
         last_name = "khani",
         phone_number = "+989387619549",
@@ -51,3 +51,29 @@ def ad_instance(car_instance,user_instance):
         type = "free"
 
     )
+
+@pytest.fixture()
+def expected_data(ad_instance):
+
+    return  {
+            'id': ad_instance.pk,
+            'code': ad_instance.code,
+            'car': {
+                'id': ad_instance.car.pk,
+                'title': ad_instance.car.title,
+                'year': ad_instance.car.year,
+                'mileage': ad_instance.car.mileage,
+                'body_color': ad_instance.car.body_color,
+                'inside_color': ad_instance.car.inside_color,
+                'body_type': ad_instance.car.body_type,
+                'transmission': ad_instance.car.transmission,
+                'fuel': ad_instance.car.fuel,
+                'image': ad_instance.car.image,
+            },
+            'description': ad_instance.description,
+            'location': ad_instance.location,
+            'price': ad_instance.price,
+            'payment_method': ad_instance.payment_method,
+            'seller_contact': ad_instance.seller_contact,
+            'url': ad_instance.url,
+    }
