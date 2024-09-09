@@ -5,7 +5,7 @@ import logging
 from time import time
 from aiohttp.client import ClientSession
 from asgiref.sync import sync_to_async
-from .models import Car,Ad
+from ads.models import Car,Ad
 
 
 logging.basicConfig(
@@ -41,10 +41,11 @@ class crawler:
                         logger.warning(f"Data not found on page {page}.")
 
                 except aiohttp.ContentTypeError:
-                    logger.error(f"Error parsing JSON on page {page}. Response content: {await response.text()}")
+                    logger.error(f"Error parsing JSON on page {page}.")
 
                 except aiohttp.ClientResponseError as e:
-                    logger.error(f"HTTP request error on page {page}: {e}")
+                    print(f"HTTP request error on page {page}: {e}")
+                    # logger.error(f"HTTP request error on page {page}.")
 
     def extract_info(self, ad):
         def get_display_value(choices, key):
