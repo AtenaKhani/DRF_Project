@@ -1,15 +1,16 @@
+from typing import final
+
 import pytest
-from allauth.account.models import EmailAddress
-from allauth.socialaccount.providers.saml.conftest import client
 
 from django.shortcuts import reverse
 
 from rest_framework import status
 from rest_framework.test import APIClient
-from rest_framework_jwt.settings import api_settings
+from rest_framework_simplejwt.tokens import RefreshToken
+
 
 from ads.models  import Car,Ad
-from rest_framework_simplejwt.tokens import RefreshToken
+
 
 pytestmark=pytest.mark.django_db
 
@@ -26,7 +27,7 @@ class TestAdList:
         self.client.force_authenticate(user=user_instance)
         response=self.client.get(url)
         assert response.status_code ==status.HTTP_200_OK
-    def test__authenticated_request_return_all_ads_200(self,user_instance,ad_instance,ad_instance2):
+    def test__authenticated_request_return_all_ads_200(self,user_instance,ad_instance):
         url=self.endpoint
         self.client.force_authenticate(user=user_instance)
         response = self.client.get(url)
@@ -36,7 +37,7 @@ class TestAdList:
         assert isinstance(response_json,dict)
         assert(len(response_json['results']) > 0)
         assert  len(ad_list)==total_ads
-    def test__unauthenticated_request_return_all_ads_200(self,user_instance,ad_instance,ad_instance2):
+    def test__unauthenticated_request_return_all_ads_200(self,user_instance,ad_instance):
         url=self.endpoint
         response = self.client.get(url)
         response_json = response.json()
@@ -175,7 +176,7 @@ class TestUserAdList:
         assert response.status_code == status.HTTP_200_OK
         assert  len(response.data['results'] ) > 0
 
-    def test__request_with_invalid_jwt_token_should_be_rejected_and_return_401(self,user_instance,ad_instance):
+    def test__request_with_invalid_jwt_token_should_be_rejected_and_return_401(self,user_instance):
         url = self.endpoint
         access_token = 'invalid_token'
         self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
@@ -200,7 +201,7 @@ class TestUserAdList:
         for ad_id in ad_ids:
             ad = Ad.objects.get(id=ad_id)
             assert ad.user==user_instance
-    def test__retrieves_all_own_advertisements_only(self,user_instance,ad_instance,ad_instance2):
+    def test__retrieves_all_own_advertisements_only(self,user_instance,ad_instance):
         url = self.endpoint
         refresh = RefreshToken.for_user(user_instance)
         access_token = str(refresh.access_token)
@@ -235,6 +236,24 @@ class TestUserAdDetail:
         response=client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data['detail']== 'Authentication credentials were not provided.'
+
+    def test__put_request_with_unauthenticated_user_should_be_rejected_and_return_401(self,ad_instance,new_ad):
+        client = APIClient()
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        response = client.put(url, data=new_ad, format='json')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data['detail'] == 'Authentication credentials were not provided.'
+
+
+    def test__put_request_with_invalid_jwt_token_should_be_rejected_and_return_401(self,user_instance,new_ad,ad_instance):
+        client = APIClient()
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        access_token = 'invalid_token'
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=new_ad, format='json')
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data['detail'] == "Given token not valid for any token type"
+
     def test__ad_detail_returns_correct_data(self,user_instance,ad_instance,new_ad):
         url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
         refresh = RefreshToken.for_user(user_instance)
@@ -258,13 +277,136 @@ class TestUserAdDetail:
         assert isinstance(response.data,dict)
 
 
+    def test__user_wallet_balance_unchanged_in_update_ad_with_unchanged_type(self,user_instance,ad_instance,new_ad):
+        initial_balance=user_instance.wallet_balance
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=new_ad, format='json')
+        user_instance.refresh_from_db()
+        final_balance=user_instance.wallet_balance
+        assert response.status_code == status.HTTP_200_OK
+        assert initial_balance == final_balance
+    def test__user_wallet_balance_changed_in_update_ad_with_changed_type_to_premium(self,user_instance,ad_instance,new_ad):
+        new_ad['type'] = 'premium'
+        user_instance.wallet_balance = 60000
+        user_instance.save()
+        initial_balance=user_instance.wallet_balance
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=new_ad, format='json')
+        user_instance.refresh_from_db()
+        final_balance=user_instance.wallet_balance
+        assert response.status_code == status.HTTP_200_OK
+        assert initial_balance != final_balance
+
+    def test__error_to_update_add_free_from_premium(self,new_ad,ad_instance,user_instance):
+        new_ad['type'] = 'free'
+        ad_instance.type ='premium'
+        ad_instance.save()
+        initial_balance = user_instance.wallet_balance
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=new_ad, format='json')
+        user_instance.refresh_from_db()
+        final_balance = user_instance.wallet_balance
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert initial_balance == final_balance
+        assert response.data[0] == "You cannot change the premium ad to free"
+
+    def test__put_request_to_updeta_ad_with_valid_data_accepted_and_return_200(self,new_ad,ad_instance,user_instance):
+        new_ad['price'] = 300000
+        new_ad['car']['year'] =2021
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=new_ad, format='json')
+        ad_instance.refresh_from_db()
+        assert response.status_code == status.HTTP_200_OK
+        assert response.data['price'] ==300000
+        assert ad_instance.price == 300000
+        assert response.data['car']['year'] ==2021
+        assert ad_instance.car.year == 2021
+
+    def test__put_request_to_update_ad_with_invalid_year_and_price_and_types_rejected_and_return_400(self,invalid_new_ad,ad_instance,user_instance):
+        url = reverse('ads:detail_my_ad', args=[ad_instance.pk])
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.put(url, data=invalid_new_ad, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['price'][0] == 'Price cannot be negative.'
+        assert response.data['car']['year'][0] == 'Miladi year must be between 1970 and the current year.'
+        assert response.data['type'][0] == 'Your wallet balance is less than 50000 Tomans, you cannot register a premium ad'
 
 
 
 
 
+class TestAdCreate:
+    endpoint=reverse('ads:create_ad')
+    client = APIClient()
 
+    def test__get_request_with_valid_jwt_token_returns_method_not_allowed_405(self, user_instance):
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.get(self.endpoint)
+        assert response.status_code == status.HTTP_405_METHOD_NOT_ALLOWED
+        assert  response.data['detail'] == "Method \"GET\" not allowed."
 
+    def test__request_with_valid_jwt_token_should_be_rejected_and_return_401(self, user_instance):
+        access_token = 'invalid_token'
+        self.client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = self.client.get(self.endpoint)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data['detail'] == "Given token not valid for any token type"
+
+    def test__request_with_unauthenticated_user_should_be_rejected_and_return_401(self):
+        client = APIClient()
+        response = client.get(self.endpoint)
+        assert response.status_code == status.HTTP_401_UNAUTHORIZED
+        assert response.data['detail'] == 'Authentication credentials were not provided.'
+
+    def test__post_request_by_user_with_valid_jwt_token_and_without_phone_number_rejected_and_returns_400(self,user_without_phone_number,new_ad):
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_without_phone_number)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.post(self.endpoint,new_ad, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert  response.data['detail'] == "Please go to your profile and provide your phone number before posting an ad."
+
+    def test__post_request_to_create_ad_with_valid_data_by_user_with_phone_accepted_and_return_201(self,user_instance,new_ad):
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.post(self.endpoint, new_ad, format='json')
+        assert response.status_code == status.HTTP_201_CREATED
+        assert response.data['message'] == "Car and Ad created successfully"
+
+    def test__post_request_to_create_ad_with_invalid_year_and_price_and_types_by_user_with_phone_rejected_and_return_400(self,user_instance,invalid_new_ad):
+        client = APIClient()
+        refresh = RefreshToken.for_user(user_instance)
+        access_token = str(refresh.access_token)
+        client.credentials(HTTP_AUTHORIZATION=f'Bearer {access_token}')
+        response = client.post(self.endpoint, invalid_new_ad, format='json')
+        assert response.status_code == status.HTTP_400_BAD_REQUEST
+        assert response.data['price'][0] == 'Price cannot be negative.'
+        assert response.data['car']['year'][0] == 'Miladi year must be between 1970 and the current year.'
+        assert response.data['type'][0] =='Your wallet balance is less than 50000 Tomans, you cannot register a premium ad'
 
 
 
