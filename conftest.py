@@ -1,6 +1,7 @@
 import pytest
 
 from django.contrib.auth import get_user_model
+from rest_framework.test import APIClient
 from datetime import date
 
 from ads.models import Car,Ad
@@ -8,6 +9,15 @@ from ads.models import Car,Ad
 
 
 User= get_user_model()
+
+@pytest.fixture
+def api_client():
+    return APIClient()
+
+@pytest.fixture
+def authenticated_user(api_client, user_instance):
+    api_client.force_authenticate(user=user_instance)
+    return user_instance
 
 @pytest.fixture
 def car_instance():

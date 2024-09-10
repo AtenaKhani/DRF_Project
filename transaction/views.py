@@ -23,12 +23,14 @@ class RechargeWalletView(APIView):
 
     def post(self, request, *args, **kwargs):
         amount = request.data.get('amount')
-        amount = float(amount)
         try:
+            amount = float(amount)
             if amount <= 0:
                     return Response({'error': 'Amount must be positive.'}, status=status.HTTP_400_BAD_REQUEST)
 
             request.session['payment_amount'] = int(amount)
+            request.session.save()
+
             logger.info(f"User {request.user.email} requested to charge {amount}.")
 
             payment_data = {
@@ -64,19 +66,18 @@ class RechargeWalletView(APIView):
             return Response({'error': 'Invalid amount.'}, status=status.HTTP_400_BAD_REQUEST)
 class PaymentCallbackView(APIView):
     permission_classes = [IsAuthenticated]
-
     def get(self, request, *args, **kwargs):
         authority = request.GET.get('Authority')
+        payment_status = request.GET.get('Status')
         user = request.user
-        amount = request.session.get('payment_amount', 0)
+        amount=10
+        # amount = request.GET.get('Amount')
 
-
-        if status == 'OK' and amount:
+        if payment_status == 'OK' and amount:
             payment_verification_data = {
                 'merchant_id': settings.ZARINPAL_MERCHANT_ID,
                 'amount': int(amount * 10),
                 'authority': authority,
-
             }
             response = requests.post(settings.ZARINPAL_VERIFY_URL, json=payment_verification_data)
             response_data = response.json()
@@ -86,14 +87,12 @@ class PaymentCallbackView(APIView):
                 transaction_id = response_data['data'].get('ref_id', 'No transaction ID available')
                 user.wallet_balance += amount
                 user.save()
-                logger.info(
-                    f"Payment successful for user {user.email}. Transaction ID: {transaction_id}. Wallet balance updated.")
+                logger.info(f"Payment successful for user {user.email}. Transaction ID: {transaction_id}. Wallet balance updated.")
                 return Response({'message': 'Payment successful.', 'transaction_id': transaction_id}, status=status.HTTP_200_OK)
             else:
-                logger.error(
-                    f"Payment verification failed for user {user.email}. Errors: {response_data.get('errors')}")
+                logger.error(f"Payment verification failed for user {user.email}. Errors: {response_data.get('errors')}")
                 return Response({'error': 'Payment verification failed.', 'detail': response_data.get('errors')},
                                 status=status.HTTP_400_BAD_REQUEST)
         else:
-            logger.warning(f"Payment was not successful for user {user.email}. Status: {status}, Amount: {amount}")
+            logger.warning(f"Payment was not successful for user {user.email}. Status: {payment_status}, Amount: {amount}")
             return Response({'error': 'Payment was not successful.'}, status=status.HTTP_400_BAD_REQUEST)
