@@ -12,7 +12,7 @@ from rest_framework.response import Response
 from rest_framework_simplejwt.authentication import JWTAuthentication
 
 from .serializers import CustomRegisterSerializer, CustomLoginSerializer, UserProfileSerializer
-from .throttels import  LoginRateThrottle
+from .throttle import  LoginRateThrottle
 
 logger=logging.getLogger('users')
 
