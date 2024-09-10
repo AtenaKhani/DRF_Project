@@ -124,6 +124,7 @@ class crawler:
         index = 0
         for ad in ads:
             if ad.code not in existing_codes:
+                existing_codes.append(ad.code)
                 new_ads.append(ad)
                 new_cars.append(cars[index])
             index+=1

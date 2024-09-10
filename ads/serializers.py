@@ -76,8 +76,8 @@ class AdCreateSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("Price cannot be negative.")
         return value
     def validate_type(self,value):
+        user = self.context['request'].user
         if value == 'premium':
-            user = self.context['request'].user
             if user.wallet_balance < 50000:
                 logger.error(
                     f'User {user.email} attempted to register a premium ad with insufficient wallet balance.')
@@ -108,7 +108,7 @@ class AdCreateSerializer(serializers.ModelSerializer):
                 user.save()
                 logger.info(f'Premium ad created. deducted 50000 Tomans from user ID: {user.id}')
 
-            ad.url = reverse('ad_detail', kwargs={'pk': ad.pk})
+            ad.url = reverse('ads:ad_detail', kwargs={'pk': ad.pk})
             ad.save()
             return ad
 
