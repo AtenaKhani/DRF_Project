@@ -2,6 +2,7 @@ from dj_rest_auth.registration.views import ResendEmailVerificationView
 from dj_rest_auth.views import LogoutView
 from django.urls import path, include, re_path
 from .views import  CustomRegisterView,CustomVerifyEmailView,CustomLoginView,UserProfileView,CustomPasswordChangeView
+
 urlpatterns =[
    path('registration/', CustomRegisterView.as_view(), name='registration'),
    path('verify-email/', CustomVerifyEmailView.as_view(), name='rest_verify_email'),
