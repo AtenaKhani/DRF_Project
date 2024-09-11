@@ -6,17 +6,16 @@ from users.views import  CustomRegisterView,CustomVerifyEmailView,CustomLoginVie
 
 class TestUrl:
     def test__register_url(self):
-            url = reverse('registration')
-            resolver_match = resolve(url)
-            assert resolver_match.view_name == 'registration'
-            assert resolver_match.func.__name__ == CustomRegisterView.as_view().__name__
-
+        url = reverse('registration')
+        resolver_match = resolve(url)
+        assert resolver_match.view_name == 'registration'
+        assert resolver_match.func.__name__ == CustomRegisterView.as_view().__name__
 
     def test__login_url(self):
-            url = reverse('login')
-            resolver_match = resolve(url)
-            assert resolver_match.view_name == 'login'
-            assert resolver_match.func.__name__ == CustomLoginView.as_view().__name__
+        url = reverse('login')
+        resolver_match = resolve(url)
+        assert resolver_match.view_name == 'login'
+        assert resolver_match.func.__name__ == CustomLoginView.as_view().__name__
 
     def test__logout_url(self):
         url = reverse('logout')
@@ -36,14 +35,11 @@ class TestUrl:
         assert resolver_match.view_name == 'password_change'
         assert resolver_match.func.__name__ == CustomPasswordChangeView.as_view().__name__
 
-
-
     def test__verify_email_url(self):
         url = reverse('rest_verify_email')
         resolver_match = resolve(url)
         assert resolver_match.view_name == 'rest_verify_email'
         assert resolver_match.func.__name__ == CustomVerifyEmailView.as_view().__name__
-
 
     def test__resend_email_url(self):
         url = reverse('rest_resend_email')

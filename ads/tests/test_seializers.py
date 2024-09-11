@@ -49,6 +49,7 @@ class TestAdListSerializer:
         serializer = AdListSerializer(ad_instance)
         data = serializer.data
         assert data['is_premium'] is False
+
     def test__get_car_year(self,ad_instance):
         serializer = AdListSerializer(ad_instance)
         data = serializer.data

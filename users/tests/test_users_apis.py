@@ -1,11 +1,8 @@
+import pytest
 
 from datetime import date
-from unittest.mock import patch
 
-import pytest
-from allauth.account.models import EmailConfirmation, EmailAddress
-from allauth.account.signals import email_confirmed
-from django.contrib.auth import get_user_model
+from allauth.account.models import EmailAddress
 from django.urls import reverse
 from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -24,7 +21,6 @@ class TestUserProfile:
         response = api_client.get(url)
         assert response.status_code == status.HTTP_200_OK
 
-
     def test__request_with_invalid_jwt_token_should_be_rejected_and_return_401(self, user_instance,api_client):
         url = self.endpoint
         access_token = 'invalid_token'
@@ -32,7 +28,6 @@ class TestUserProfile:
         response = api_client.get(url)
         assert response.status_code == status.HTTP_401_UNAUTHORIZED
         assert response.data['detail'] == "Given token not valid for any token type"
-
 
     def test__unauthenticated_request_should_be_rejected_and_return_401(self, ad_instance,api_client):
         url = self.endpoint
@@ -103,6 +98,7 @@ class TestCustomLogin:
        response = api_client.post(url, data=data, format='json')
        assert response.status_code == status.HTTP_400_BAD_REQUEST
        assert response.data['non_field_errors'][0] == 'E-mail is not verified.'
+
    def test_post_request_to_login_with_inactive_user_rejected_and_return_200(self,verified_user,api_client):
        url = self.endpoint
        verified_user.is_active = False
@@ -120,6 +116,7 @@ class TestCustomLogin:
        response = api_client.post(url, data=data, format='json')
        assert response.status_code == status.HTTP_400_BAD_REQUEST
        assert response.data['non_field_errors'][0] == 'No user found with this email address.'
+
 class TestCustomRegister:
    endpoint=reverse('registration')
    def test__post_request_to_register_with_valid_data_accepted_and_return_201(self,api_client):

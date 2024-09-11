@@ -1,9 +1,7 @@
-from datetime import date
-
 import pytest
 from allauth.account.models import EmailAddress
-
 from rest_framework.exceptions import ValidationError
+from datetime import date
 
 from users.serializers import UserProfileSerializer,CustomLoginSerializer
 
@@ -80,65 +78,66 @@ class TestUserProfile:
         assert 'first_name' in serializer.errors
         assert serializer.errors['first_name'][0] == "First name must contain only alphabetic characters."
 
-    class TestUserProfile:
+class TestUserProfile:
 
-        def test__validate_email_and_password__by_verified_user_and_valid_data(self,verified_user):
-                data = {
-                    'email': 'test@example.com',
-                    'password': 'valid_password'
-                }
-                serializer = CustomLoginSerializer(data=data, context={'request': None})
-                assert serializer.is_valid()
-                assert serializer.validated_data['user'] == verified_user
+    def test__validate_email_and_password__by_verified_user_and_valid_data(self,verified_user):
+        data = {
+            'email': 'test@example.com',
+            'password': 'valid_password'
+        }
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
+        assert serializer.is_valid()
+        assert serializer.validated_data['user'] == verified_user
 
-        def test__validate_email_and_password__by_verified_user_with_incorrect_password(self,verified_user):
-            data = {
-                'email': 'test@example.com',
-                'password': 'invalid_password'
-            }
-            serializer = CustomLoginSerializer(data=data, context={'request': None})
-            is_valid = serializer.is_valid()
-            assert not is_valid
-            assert serializer.errors['non_field_errors'][0] == 'Incorrect password.'
+    def test__validate_email_and_password__by_verified_user_with_incorrect_password(self,verified_user):
+        data = {
+            'email': 'test@example.com',
+            'password': 'invalid_password'
+        }
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
+        is_valid = serializer.is_valid()
+        assert not is_valid
+        assert serializer.errors['non_field_errors'][0] == 'Incorrect password.'
 
-        def test__validate_email_and_password__by_unverified_user(self,verified_user):
-            EmailAddress.objects.filter(user=verified_user).update(verified=False)
-            data = {
-                'email': 'test@example.com',
-                'password': 'valid_password'
-            }
-            serializer = CustomLoginSerializer(data=data, context={'request': None})
-            is_valid = serializer.is_valid()
-            assert not is_valid
-            assert serializer.errors['non_field_errors'][0] == 'E-mail is not verified.'
+    def test__validate_email_and_password__by_unverified_user(self,verified_user):
+        EmailAddress.objects.filter(user=verified_user).update(verified=False)
+        data = {
+            'email': 'test@example.com',
+            'password': 'valid_password'
+        }
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
+        is_valid = serializer.is_valid()
+        assert not is_valid
+        assert serializer.errors['non_field_errors'][0] == 'E-mail is not verified.'
 
-        def test__validate_email_with_user_not_exist(self):
-            data = {'email': 'nonexistent@example.com', 'password': 'some_password'}
-            serializer = CustomLoginSerializer(data=data,context={'request': None})
+    def test__validate_email_with_user_not_exist(self):
+        data = {'email': 'nonexistent@example.com', 'password': 'some_password'}
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
 
-            with pytest.raises(ValidationError) :
-                serializer.is_valid(raise_exception=True)
-            assert serializer.errors['non_field_errors'][0] ==  'No user found with this email address.'
+        with pytest.raises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+        assert serializer.errors['non_field_errors'][0] == 'No user found with this email address.'
 
-        def test__validate_email_with_empty_field(self):
-            data = {'email': '', 'password': ''}
-            serializer = CustomLoginSerializer(data=data,context={'request': None})
-            with pytest.raises(ValidationError) :
-                serializer.is_valid(raise_exception=True)
-            assert serializer.errors['email'][0] ==   "This field may not be blank."
-            assert serializer.errors['password'][0] == "This field may not be blank."
+    def test__validate_email_with_empty_field(self):
+        data = {'email': '', 'password': ''}
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
+        with pytest.raises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+        assert serializer.errors['email'][0] == "This field may not be blank."
+        assert serializer.errors['password'][0] == "This field may not be blank."
 
-        def test_validate_user_inactive(self,verified_user):
-            verified_user.is_active = False
-            verified_user.save()
-            data = {
-                'email': 'test@example.com',
-                'password': 'valid_password'
-            }
-            serializer = CustomLoginSerializer(data=data,context={'request': None})
-            with pytest.raises(ValidationError) :
-                serializer.is_valid(raise_exception=True)
-            assert serializer.errors['non_field_errors'][0] == 'User account is disabled.'
+    def test_validate_user_inactive(self,verified_user):
+        verified_user.is_active = False
+        verified_user.save()
+        data = {
+            'email': 'test@example.com',
+            'password': 'valid_password'
+        }
+        serializer = CustomLoginSerializer(data=data, context={'request': None})
+        with pytest.raises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+        assert serializer.errors['non_field_errors'][0] == 'User account is disabled.'
+
 
 
 

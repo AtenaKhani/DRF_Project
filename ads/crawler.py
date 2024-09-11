@@ -137,5 +137,5 @@ def run_crawler():
     fetcher = crawler('https://bama.ir/cad/api/search')
     logger.info("Crawling process started...")
     start = time()
-    asyncio.run(fetcher.create_and_run_tasks(10))
+    asyncio.run(fetcher.create_and_run_tasks(40))
     logger.info(f"run time: {time() - start} seconds")

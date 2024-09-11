@@ -59,6 +59,8 @@ async def test__create_and_run_tasks(mock_save_data, mock_fetch_pages):
     all_cars, all_ads = mock_save_data.call_args[0]
     assert len(all_cars) == 1
     assert len(all_ads) == 1
+
+
 @pytest.mark.asyncio
 @patch('crawler.Ad.objects.bulk_create', new_callable=MagicMock)
 @patch('crawler.Car.objects.bulk_create', new_callable=MagicMock)
