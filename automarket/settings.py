@@ -144,9 +144,9 @@ CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
 CELERY_BEAT_SCHEDULE = {
-    'update_car_data_every_5_minutes': {
+    'update_car_data_every_week': {
         'task': 'ads.tasks.update_car_data',
-        'schedule': timedelta(minutes=2),
+        'schedule': timedelta(weeks=1),
     },
 }
 
