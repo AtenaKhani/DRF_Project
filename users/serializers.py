@@ -34,7 +34,10 @@ class CustomLoginSerializer(serializers.Serializer):
             if not user:
                 UserModel = get_user_model()
                 try:
-                    UserModel.objects.get(email=email)
+                    user=UserModel.objects.get(email=email)
+                    if not user.is_active:
+                        logger.warning("User account is disabled for email: %s", email)
+                        raise exceptions.ValidationError('User account is disabled.')
                     logger.warning("Incorrect password provided for email: %s", email)
                     raise exceptions.ValidationError('Incorrect password.')
                 except UserModel.DoesNotExist:
@@ -67,12 +70,6 @@ class CustomLoginSerializer(serializers.Serializer):
                 raise exceptions.ValidationError(msg)
         else:
             return self._validate_email(email, password)
-    @staticmethod
-    def validate_auth_user_status(user):
-        if not user.is_active:
-            msg = 'User account is disabled.'
-            logger.warning("Validation error: %s", msg)
-            raise exceptions.ValidationError(msg)
 
     @staticmethod
     def validate_email_verification_status(user, email=None):
@@ -89,7 +86,8 @@ class CustomLoginSerializer(serializers.Serializer):
         password = attrs.get('password')
         logger.debug("Validating credentials for email: %s", email)
         user = self._validate_email(email, password)
-        self.validate_auth_user_status(user)
+
+
         if 'dj_rest_auth.registration' in settings.INSTALLED_APPS:
             self.validate_email_verification_status(user, email=email)
 
@@ -144,7 +142,4 @@ class UserProfileSerializer(serializers.ModelSerializer):
 
     def validate_last_name(self, value):
         return self.validate_name_field(value, "Last name")
-
-
-
 

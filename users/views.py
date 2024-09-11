@@ -84,13 +84,3 @@ class CustomPasswordChangeView(PasswordChangeView):
     authentication_classes = [JWTAuthentication]
     permission_classes = [IsAuthenticated]
 
-
-
-
-
-
-
-
-
-
-

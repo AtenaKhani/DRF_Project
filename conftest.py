@@ -1,4 +1,5 @@
 import pytest
+from allauth.account.models import EmailAddress
 
 from django.contrib.auth import get_user_model
 from rest_framework.test import APIClient
@@ -65,8 +66,22 @@ def ad_instance(car_instance,user_instance):
 @pytest.fixture
 def user_without_phone_number():
     return User.objects.create_user(
-        email = "aaakhani@gmail.com"
+        email = "aaakhani@gmail.com",
     )
+
+@pytest.fixture
+def verified_user(db):
+    user = User.objects.create_user(
+        email='test@example.com',
+        password='valid_password'
+    )
+    EmailAddress.objects.create(
+        user=user,
+        email=user.email,
+        verified=True,
+        primary=True
+    )
+    return user
 
 
 @pytest.fixture()
@@ -139,3 +154,19 @@ def invalid_new_ad(ad_instance):
             'type':'premium',
 
     }
+
+@pytest.fixture()
+def new_user():
+    return  {
+
+        'email': 'example.com',
+        'password' :"Aa*40015091006",
+        'first_name': 'amir',
+        'last_name': 'khani',
+        'phone_number': '+989387619549',
+        'birth_date': date(1990,1,1,),
+        'is_active': True,
+        'is_staff': False,
+        'wallet_balance': 50000.00
+    }
+
